@@ -10,8 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -93,8 +91,10 @@ export function TopBar({ subaccountId }: { subaccountId?: string }) {
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
+              <div className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+                {user?.email}
+              </div>
+              <div className="-mx-1 my-1 h-px bg-border" />
               <DropdownMenuItem
                 onClick={async () => {
                   const supabase = createClient();
