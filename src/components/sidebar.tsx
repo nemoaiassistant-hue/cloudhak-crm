@@ -19,6 +19,8 @@ import {
   ArrowLeftRight,
   Shield,
   BarChart3,
+  Briefcase,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -61,6 +63,12 @@ const NAV_ITEMS: NavItem[] = [
 const SETTINGS_ITEMS: NavItem[] = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
   { label: "API Keys", href: "/dashboard/settings#api-keys", icon: KeyRound, permission: "settings.api_keys" },
+];
+
+const AGENCY_ITEMS: NavItem[] = [
+  { label: "Agency Overview", href: "/dashboard/agency", icon: Briefcase, permission: "settings.org" },
+  { label: "Client Management", href: "/dashboard/agency/clients", icon: Building2, permission: "settings.team" },
+  { label: "Agency Reports", href: "/dashboard/agency/reports", icon: TrendingUp, permission: "settings.org" },
 ];
 
 export function Sidebar() {
@@ -138,6 +146,8 @@ export function Sidebar() {
   const activeRole = (subAccounts.find((a) => a.id === activeSubAccount)?.role || "viewer") as Role;
   const visibleNavItems = NAV_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
   const visibleSettingsItems = SETTINGS_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
+  const visibleAgencyItems = AGENCY_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
+  const isAgencyAdmin = activeRole === "admin";
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card">
@@ -205,6 +215,35 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Agency Section (admin only) */}
+        {isAgencyAdmin && visibleAgencyItems.length > 0 && (
+          <>
+            <div className="my-3 border-t" />
+            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Agency
+            </p>
+            {visibleAgencyItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </>
+        )}
 
         <div className="my-3 border-t" />
 
