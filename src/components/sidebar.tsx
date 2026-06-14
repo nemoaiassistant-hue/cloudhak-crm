@@ -45,7 +45,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const SETTINGS_ITEMS: NavItem[] = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
-  { label: "API Keys", href: "/dashboard/settings/api-keys", icon: KeyRound },
+  { label: "API Keys", href: "/dashboard/settings#api-keys", icon: KeyRound },
 ];
 
 export function Sidebar() {

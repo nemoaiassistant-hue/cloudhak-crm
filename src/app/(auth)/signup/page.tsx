@@ -50,20 +50,36 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. If signup succeeded, create org + sub-account + role
-    // (Trigger auto-creates users row from auth)
+    // 2. If signup succeeded, create org + sub-account + admin role
     if (data.user) {
-      // Create organization
       const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const { error: orgError } = await supabase.from("organizations").insert({
-        name: orgName,
-        slug,
-        plan_tier: "free",
-      });
+
+      // Create organization
+      const { data: orgData, error: orgError } = await supabase
+        .from("organizations")
+        .insert({ name: orgName, slug, plan_tier: "free" })
+        .select("id")
+        .single();
 
       if (orgError) {
-        // User created but org failed — they can set up later
         console.error("Org creation failed:", orgError);
+        // User created but org failed — they can set up later
+      } else if (orgData) {
+        // Create default sub-account (same name as org)
+        const { data: saData, error: saError } = await supabase
+          .from("sub_accounts")
+          .insert({ org_id: orgData.id, name: orgName, slug })
+          .select("id")
+          .single();
+
+        if (!saError && saData) {
+          // Assign user as admin
+          await supabase.from("user_subaccount_roles").insert({
+            user_id: data.user.id,
+            subaccount_id: saData.id,
+            role: "admin",
+          });
+        }
       }
     }
 
