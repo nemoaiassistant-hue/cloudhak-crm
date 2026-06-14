@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { CalendarView } from "@/components/calendar/calendar-view";
+import { FormList } from "@/components/forms/form-list";
 
-export default async function CalendarPage() {
+export default async function FormsPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,7 +22,7 @@ export default async function CalendarPage() {
   if (subaccountIds.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="mb-6 text-2xl font-bold">Calendar</h1>
+        <h1 className="mb-6 text-2xl font-bold">Forms</h1>
         <p className="text-muted-foreground">You need a workspace first.</p>
       </div>
     );
@@ -30,8 +30,8 @@ export default async function CalendarPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-6 text-2xl font-bold">Calendar</h1>
-      <CalendarView subaccountId={subaccountIds[0]} />
+      <h1 className="mb-6 text-2xl font-bold">Forms</h1>
+      <FormList subaccountId={subaccountIds[0]} />
     </div>
   );
 }

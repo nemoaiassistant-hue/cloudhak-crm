@@ -14,6 +14,7 @@ import {
   KeyRound,
   ChevronDown,
   Building2,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Pipelines", href: "/dashboard/pipelines", icon: Filter },
   { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
   { label: "Calendar", href: "/dashboard/calendar", icon: Calendar },
+  { label: "Forms", href: "/dashboard/forms", icon: FileText },
   { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
 ];
 
