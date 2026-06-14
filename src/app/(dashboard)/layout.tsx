@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
+import { TopBar } from "@/components/topbar";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AIAssistant } from "@/components/ai/ai-assistant";
@@ -20,7 +21,10 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto bg-muted/30">{children}</main>
+      </div>
       <AIAssistant />
     </div>
   );

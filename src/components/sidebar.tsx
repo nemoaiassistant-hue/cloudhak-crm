@@ -24,20 +24,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { GlobalSearch } from "@/components/search/global-search";
-import { NotificationCenter } from "@/components/notifications/notification-center";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { hasPermission, type Role, ROLE_LABELS, type Permission } from "@/lib/rbac/permissions";
+import { hasPermission, type Role, type Permission } from "@/lib/rbac/permissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface NavItem {
   label: string;
@@ -73,16 +66,10 @@ const AGENCY_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<{
-    email: string;
-    full_name: string | null;
-  } | null>(null);
   const [subAccounts, setSubAccounts] = useState<
     Array<{ id: string; name: string; slug: string; role: string }>
   >([]);
   const [activeSubAccount, setActiveSubAccount] = useState<string>("");
-
-  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     async function load() {
@@ -91,14 +78,6 @@ export function Sidebar() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      setUserId(user.id);
-
-      const { data: profile } = await supabase
-        .from("users")
-        .select("email, full_name")
-        .eq("id", user.id)
-        .single();
-      if (profile) setUser(profile);
 
       const { data: roles } = await supabase
         .from("user_subaccount_roles")
@@ -134,15 +113,6 @@ export function Sidebar() {
     window.location.reload();
   }
 
-  const initials = user?.full_name
-    ? user.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user?.email?.[0]?.toUpperCase() || "?";
-
   const activeRole = (subAccounts.find((a) => a.id === activeSubAccount)?.role || "viewer") as Role;
   const visibleNavItems = NAV_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
   const visibleSettingsItems = SETTINGS_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
@@ -153,15 +123,10 @@ export function Sidebar() {
     <aside className="flex h-screen w-64 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <Building2 className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">CloudHak CRM</span>
-      </div>
-
-      {/* Search + Notifications */}
-      <div className="flex items-center gap-2 border-b p-3">
-        <GlobalSearch subaccountId={activeSubAccount || undefined} />
-        <NotificationCenter userId={userId} />
-        <ThemeToggle />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Building2 className="h-5 w-5" />
+        </div>
+        <span className="text-lg font-bold sidebar-logo-gradient">CloudHak CRM</span>
       </div>
 
       {/* Sub-Account Switcher */}
@@ -266,41 +231,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      {/* User Menu */}
-      <div className="border-t p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden text-left">
-              <p className="truncate text-sm font-medium">
-                {user?.full_name || user?.email}
-              </p>
-              <p className="truncate text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  {ROLE_LABELS[activeRole]}
-                </span>
-                {user?.email}
-              </p>
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-full" align="start">
-            <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signOut();
-                window.location.href = "/login";
-              }}
-            >
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </aside>
   );
 }
