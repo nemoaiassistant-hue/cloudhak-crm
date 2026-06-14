@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import {
   Zap, Plus, Trash2, Loader2, Play, Pause,
-  Mail, MessageSquare, Tag, Webhook, Clock, ArrowRight, UserPlus, FileEdit,
+  MessageSquare, Tag, ArrowRight, UserPlus, FileEdit,
 } from "lucide-react";
 import { PermissionGate } from "@/components/rbac/permission-gate";
 

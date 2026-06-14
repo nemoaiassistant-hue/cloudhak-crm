@@ -35,7 +35,6 @@ const STEP_TYPES: Record<string, { label: string; icon: React.ReactNode; color: 
 
 export function WorkflowBuilder({
   workflowId,
-  workflowName,
   triggerType,
 }: {
   workflowId: string;

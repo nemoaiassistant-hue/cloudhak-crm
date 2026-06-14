@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, GripVertical, Save, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 
 interface FormField {
   type: string;

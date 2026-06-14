@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Clock, MapPin, Loader2 } from "lucide-react";
 import { PermissionGate } from "@/components/rbac/permission-gate";
 

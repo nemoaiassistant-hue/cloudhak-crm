@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  TrendingUp, Users, PoundSterling, Target, FileText, Building2,
+  TrendingUp, Users, PoundSterling, Target, FileText,
   BarChart3, PieChart, Trophy,
 } from "lucide-react";
 

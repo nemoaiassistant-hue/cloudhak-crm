@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { to, body, subaccountId, contactId } = await req.json();
+    const { to, body, subaccountId: _subaccountId, contactId } = await req.json();
 
     if (!to || !body) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

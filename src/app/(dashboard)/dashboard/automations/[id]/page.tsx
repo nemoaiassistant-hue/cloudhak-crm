@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { WorkflowBuilder } from "@/components/automations/workflow-builder";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 
 export default async function WorkflowDetailPage({

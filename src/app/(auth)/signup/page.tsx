@@ -34,7 +34,7 @@ export default function SignupPage() {
     const supabase = createClient();
 
     // 1. Create auth user with org name in metadata
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {

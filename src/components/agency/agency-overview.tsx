@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Users, Building2, TrendingUp, PoundSterling, Filter,
-  FileText, Zap, MessageSquare, ArrowRight, Activity,
+  Users, Building2, TrendingUp, PoundSterling,
+  ArrowRight, Activity,
 } from "lucide-react";
 import Link from "next/link";
 
