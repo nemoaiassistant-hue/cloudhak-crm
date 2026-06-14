@@ -43,7 +43,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(redirect);
+    router.push("/auth/onboarding");
     router.refresh();
   }
 

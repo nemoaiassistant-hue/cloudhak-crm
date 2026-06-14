@@ -40,6 +40,7 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
+          org_name: orgName,
         },
       },
     });
@@ -50,40 +51,10 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. If signup succeeded, create org + sub-account + admin role
-    if (data.user) {
-      const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    // Org/sub-account creation deferred to /auth/onboarding (runs after email confirmation)
+    // This fixes the bug where client-side inserts fail due to RLS before session is active
 
-      // Create organization
-      const { data: orgData, error: orgError } = await supabase
-        .from("organizations")
-        .insert({ name: orgName, slug, plan_tier: "free" })
-        .select("id")
-        .single();
-
-      if (orgError) {
-        console.error("Org creation failed:", orgError);
-        // User created but org failed — they can set up later
-      } else if (orgData) {
-        // Create default sub-account (same name as org)
-        const { data: saData, error: saError } = await supabase
-          .from("sub_accounts")
-          .insert({ org_id: orgData.id, name: orgName, slug })
-          .select("id")
-          .single();
-
-        if (!saError && saData) {
-          // Assign user as admin
-          await supabase.from("user_subaccount_roles").insert({
-            user_id: data.user.id,
-            subaccount_id: saData.id,
-            role: "admin",
-          });
-        }
-      }
-    }
-
-    router.push("/login?message=Check your email to confirm your account");
+    router.push("/login?message=Check your email to confirm your account, then sign in to complete setup");
     router.refresh();
     setLoading(false);
   }
