@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Inbox } from "@/components/inbox/inbox";
+import { WorkflowList } from "@/components/automations/workflow-list";
 
-export default async function InboxPage() {
+export default async function AutomationsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -16,7 +16,7 @@ export default async function InboxPage() {
   if (ids.length === 0) {
     return (
       <div className="p-6">
-        <h1 className="mb-6 text-2xl font-bold">Inbox</h1>
+        <h1 className="mb-6 text-2xl font-bold">Automations</h1>
         <p className="text-muted-foreground">You need a workspace first.</p>
       </div>
     );
@@ -24,8 +24,8 @@ export default async function InboxPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-4 text-2xl font-bold">Unified Inbox</h1>
-      <Inbox subaccountId={ids[0]} />
+      <h1 className="mb-6 text-2xl font-bold">Automations</h1>
+      <WorkflowList subaccountId={ids[0]} />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Building2,
   FileText,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Calendar", href: "/dashboard/calendar", icon: Calendar },
   { label: "Forms", href: "/dashboard/forms", icon: FileText },
   { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
+  { label: "Automations", href: "/dashboard/automations", icon: Zap },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
