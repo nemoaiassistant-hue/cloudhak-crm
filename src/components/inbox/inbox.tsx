@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Send, Loader2, MessageSquare, Mail, MessageCircle } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface Conversation {
   id: string;
@@ -348,6 +349,7 @@ export function Inbox({ subaccountId }: { subaccountId: string }) {
             </ScrollArea>
 
             {/* Reply box */}
+            <PermissionGate subaccountId={subaccountId} require="inbox.reply" fallback={<div className="border-t p-3 text-center text-sm text-muted-foreground">You don't have permission to reply</div>}>
             <div className="border-t p-3 flex gap-2">
               <Input
                 placeholder={`Reply via ${selected.channel}...`}
@@ -365,6 +367,7 @@ export function Inbox({ subaccountId }: { subaccountId: string }) {
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
+            </PermissionGate>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">

@@ -18,6 +18,7 @@ import {
   Zap,
   ArrowLeftRight,
   Shield,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/search/global-search";
 import { NotificationCenter } from "@/components/notifications/notification-center";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { hasPermission, type Role, ROLE_LABELS, type Permission } from "@/lib/rbac/permissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,25 +41,26 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  permission: Permission;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Contacts", href: "/dashboard/contacts", icon: Users },
-  { label: "Pipelines", href: "/dashboard/pipelines", icon: Filter },
-  { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
-  { label: "Calendar", href: "/dashboard/calendar", icon: Calendar },
-  { label: "Forms", href: "/dashboard/forms", icon: FileText },
-  { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
-  { label: "Automations", href: "/dashboard/automations", icon: Zap },
-  { label: "Migrate", href: "/dashboard/migrate", icon: ArrowLeftRight },
-  { label: "Reports", href: "/dashboard/reports", icon: Building2 },
-  { label: "GDPR", href: "/dashboard/gdpr", icon: Shield },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "contacts.view" },
+  { label: "Contacts", href: "/dashboard/contacts", icon: Users, permission: "contacts.view" },
+  { label: "Pipelines", href: "/dashboard/pipelines", icon: Filter, permission: "pipelines.view" },
+  { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare, permission: "tasks.view" },
+  { label: "Calendar", href: "/dashboard/calendar", icon: Calendar, permission: "calendar.view" },
+  { label: "Forms", href: "/dashboard/forms", icon: FileText, permission: "forms.view" },
+  { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare, permission: "inbox.view" },
+  { label: "Automations", href: "/dashboard/automations", icon: Zap, permission: "automations.view" },
+  { label: "Migrate", href: "/dashboard/migrate", icon: ArrowLeftRight, permission: "migrate.view" },
+  { label: "Reports", href: "/dashboard/reports", icon: BarChart3, permission: "reports.view" },
+  { label: "GDPR", href: "/dashboard/gdpr", icon: Shield, permission: "settings.gdpr" },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
-  { label: "API Keys", href: "/dashboard/settings#api-keys", icon: KeyRound },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, permission: "settings.view" },
+  { label: "API Keys", href: "/dashboard/settings#api-keys", icon: KeyRound, permission: "settings.api_keys" },
 ];
 
 export function Sidebar() {
@@ -132,6 +135,10 @@ export function Sidebar() {
         .slice(0, 2)
     : user?.email?.[0]?.toUpperCase() || "?";
 
+  const activeRole = (subAccounts.find((a) => a.id === activeSubAccount)?.role || "viewer") as Role;
+  const visibleNavItems = NAV_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
+  const visibleSettingsItems = SETTINGS_ITEMS.filter((item) => hasPermission(activeRole, item.permission));
+
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card">
       {/* Logo */}
@@ -178,7 +185,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -201,7 +208,7 @@ export function Sidebar() {
 
         <div className="my-3 border-t" />
 
-        {SETTINGS_ITEMS.map((item) => {
+        {visibleSettingsItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
@@ -232,7 +239,10 @@ export function Sidebar() {
               <p className="truncate text-sm font-medium">
                 {user?.full_name || user?.email}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {ROLE_LABELS[activeRole]}
+                </span>
                 {user?.email}
               </p>
             </div>

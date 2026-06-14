@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Clock, MapPin, Loader2 } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface CalendarEvent {
   id: string;
@@ -287,13 +288,15 @@ export function CalendarView({ subaccountId }: { subaccountId: string }) {
                   month: "long",
                 })}
               </h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => openCreateForDay(selectedDate)}
-              >
-                <Plus className="mr-1 h-3 w-3" /> Add
-              </Button>
+              <PermissionGate subaccountId={subaccountId} require="calendar.manage">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openCreateForDay(selectedDate)}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </PermissionGate>
             </div>
             {selectedEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">No events scheduled.</p>
@@ -306,12 +309,14 @@ export function CalendarView({ subaccountId }: { subaccountId: string }) {
                         <div className={`h-2 w-2 rounded-full ${TYPE_DOT[e.type] || "bg-gray-400"}`} />
                         <p className="font-medium text-sm">{e.title}</p>
                       </div>
-                      <button
-                        onClick={() => deleteEvent(e.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                      <PermissionGate subaccountId={subaccountId} require="calendar.manage">
+                        <button
+                          onClick={() => deleteEvent(e.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </PermissionGate>
                     </div>
                     <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Filter, Trash2, Loader2, TrendingUp, ArrowRight } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface Pipeline {
   id: string;
@@ -125,11 +126,13 @@ export function PipelineList({ subaccountId }: { subaccountId: string }) {
           {pipelines.length} pipeline{pipelines.length !== 1 ? "s" : ""}
         </p>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogTrigger>
-            <Button size="sm">
-              <Plus className="mr-1 h-4 w-4" /> New Pipeline
-            </Button>
-          </DialogTrigger>
+          <PermissionGate subaccountId={subaccountId} require="pipelines.manage">
+            <DialogTrigger>
+              <Button size="sm">
+                <Plus className="mr-1 h-4 w-4" /> New Pipeline
+              </Button>
+            </DialogTrigger>
+          </PermissionGate>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Pipeline</DialogTitle>
@@ -189,17 +192,19 @@ export function PipelineList({ subaccountId }: { subaccountId: string }) {
                     <TrendingUp className="h-4 w-4" />
                     {p.name}
                   </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deletePipeline(p.id);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
+                  <PermissionGate subaccountId={subaccountId} require="pipelines.manage">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePipeline(p.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </PermissionGate>
                 </div>
               </CardHeader>
               <CardContent>

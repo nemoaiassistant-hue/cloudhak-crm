@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiRequirePermission } from "@/lib/rbac/guards";
 
 export async function POST(req: NextRequest) {
   try {
+    // RBAC: only staff+ can send emails
+    const { allowed, error } = await apiRequirePermission("inbox.reply");
+    if (!allowed && error) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

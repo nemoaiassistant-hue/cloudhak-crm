@@ -20,6 +20,7 @@ import {
   Zap, Plus, Trash2, Loader2, Play, Pause,
   Mail, MessageSquare, Tag, Webhook, Clock, ArrowRight, UserPlus, FileEdit,
 } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface Workflow {
   id: string;
@@ -122,11 +123,13 @@ export function WorkflowList({ subaccountId }: { subaccountId: string }) {
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{workflows.length} workflow{workflows.length !== 1 ? "s" : ""}</p>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogTrigger>
-            <Button size="sm">
-              <Plus className="mr-1 h-4 w-4" /> New Workflow
-            </Button>
-          </DialogTrigger>
+          <PermissionGate subaccountId={subaccountId} require="automations.manage">
+            <DialogTrigger>
+              <Button size="sm">
+                <Plus className="mr-1 h-4 w-4" /> New Workflow
+              </Button>
+            </DialogTrigger>
+          </PermissionGate>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Automation</DialogTitle>
@@ -219,11 +222,15 @@ export function WorkflowList({ subaccountId }: { subaccountId: string }) {
                       ) : (
                         <Badge variant="secondary" className="text-xs"><Pause className="mr-0.5 h-3 w-3" /> Paused</Badge>
                       )}
-                      <Switch checked={wf.enabled} onCheckedChange={() => toggle(wf)} />
+                      <PermissionGate subaccountId={subaccountId} require="automations.manage">
+                        <Switch checked={wf.enabled} onCheckedChange={() => toggle(wf)} />
+                      </PermissionGate>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => deleteWorkflow(wf.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <PermissionGate subaccountId={subaccountId} require="automations.manage">
+                      <Button variant="ghost" size="icon" onClick={() => deleteWorkflow(wf.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               </CardContent>

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, GripVertical, Clock, User, Trash2, Loader2, Settings2 } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface Stage {
   id: string;
@@ -246,9 +247,11 @@ export function KanbanBoard({ pipelineId, subaccountId }: KanbanBoardProps) {
           <Button variant="outline" size="sm" onClick={() => setShowAddStage(true)}>
             <Plus className="mr-1 h-4 w-4" /> Stage
           </Button>
-          <Button size="sm" onClick={() => { setOppStageId(stages[0]?.id || null); setShowAddOpp(true); }}>
-            <Plus className="mr-1 h-4 w-4" /> Deal
-          </Button>
+          <PermissionGate subaccountId={subaccountId} require="pipelines.manage">
+            <Button size="sm" onClick={() => { setOppStageId(stages[0]?.id || null); setShowAddOpp(true); }}>
+              <Plus className="mr-1 h-4 w-4" /> Deal
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -302,12 +305,14 @@ export function KanbanBoard({ pipelineId, subaccountId }: KanbanBoardProps) {
                               >
                                 <div className="flex items-start justify-between">
                                   <p className="font-medium leading-tight">{opp.title}</p>
-                                  <button
-                                    onClick={() => deleteOpportunity(opp.id)}
-                                    className="ml-1 shrink-0 text-muted-foreground hover:text-destructive"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
+                                  <PermissionGate subaccountId={subaccountId} require="pipelines.manage">
+                                    <button
+                                      onClick={() => deleteOpportunity(opp.id)}
+                                      className="ml-1 shrink-0 text-muted-foreground hover:text-destructive"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </PermissionGate>
                                 </div>
                                 {opp.value > 0 && (
                                   <p className="mt-1 font-semibold text-green-600">

@@ -33,6 +33,7 @@ import {
   Loader2,
   Inbox,
 } from "lucide-react";
+import { PermissionGate } from "@/components/rbac/permission-gate";
 
 interface FormItem {
   id: string;
@@ -132,11 +133,13 @@ export function FormList({ subaccountId }: { subaccountId: string }) {
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{forms.length} form{forms.length !== 1 ? "s" : ""}</p>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogTrigger>
-            <Button size="sm">
-              <Plus className="mr-1 h-4 w-4" /> New Form
-            </Button>
-          </DialogTrigger>
+          <PermissionGate subaccountId={subaccountId} require="forms.manage">
+            <DialogTrigger>
+              <Button size="sm">
+                <Plus className="mr-1 h-4 w-4" /> New Form
+              </Button>
+            </DialogTrigger>
+          </PermissionGate>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Form</DialogTitle>
@@ -230,13 +233,15 @@ export function FormList({ subaccountId }: { subaccountId: string }) {
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     </a>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteForm(form.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <PermissionGate subaccountId={subaccountId} require="forms.manage">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteForm(form.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               </CardContent>

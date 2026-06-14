@@ -7,6 +7,7 @@ import { ApiKeyManagement } from "@/components/settings/api-key-management";
 import { WhiteLabelSettings } from "@/components/settings/white-label";
 import { CommsSettings } from "@/components/settings/comms-settings";
 import { AuditLogViewer } from "@/components/settings/audit-log-viewer";
+import { hasPermission, type Role } from "@/lib/rbac/permissions";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -63,6 +64,9 @@ export default async function SettingsPage() {
 
   // Get the active sub-account (first one for now)
   const activeSubaccountId = subAccounts[0]?.id;
+
+  // Get user's role for the active sub-account
+  const userRole = (roles?.[0]?.role as Role) || "viewer";
 
   // Get team members for active sub-account
   let teamMembers: Array<{
@@ -151,11 +155,21 @@ export default async function SettingsPage() {
       <Tabs defaultValue="organization">
         <TabsList className="mb-4">
           <TabsTrigger value="organization">Organization</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
-          <TabsTrigger value="branding">White-Label</TabsTrigger>
-          <TabsTrigger value="comms">Communications</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          {hasPermission(userRole, "settings.team") && (
+            <TabsTrigger value="team">Team</TabsTrigger>
+          )}
+          {hasPermission(userRole, "settings.api_keys") && (
+            <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          )}
+          {hasPermission(userRole, "settings.branding") && (
+            <TabsTrigger value="branding">White-Label</TabsTrigger>
+          )}
+          {hasPermission(userRole, "settings.comms") && (
+            <TabsTrigger value="comms">Communications</TabsTrigger>
+          )}
+          {hasPermission(userRole, "settings.audit") && (
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="organization">
