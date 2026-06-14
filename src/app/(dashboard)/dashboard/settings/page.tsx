@@ -5,6 +5,8 @@ import { OrgSettings } from "@/components/settings/org-settings";
 import { TeamManagement } from "@/components/settings/team-management";
 import { ApiKeyManagement } from "@/components/settings/api-key-management";
 import { WhiteLabelSettings } from "@/components/settings/white-label";
+import { CommsSettings } from "@/components/settings/comms-settings";
+import { AuditLogViewer } from "@/components/settings/audit-log-viewer";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -152,6 +154,8 @@ export default async function SettingsPage() {
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="branding">White-Label</TabsTrigger>
+          <TabsTrigger value="comms">Communications</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="organization">
@@ -178,6 +182,14 @@ export default async function SettingsPage() {
               subaccountName={subAccounts[0].name}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="comms">
+          <CommsSettings />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          {activeSubaccountId && <AuditLogViewer subaccountId={activeSubaccountId} />}
         </TabsContent>
       </Tabs>
     </div>

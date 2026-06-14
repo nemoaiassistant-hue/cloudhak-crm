@@ -17,10 +17,14 @@ import {
   FileText,
   Zap,
   ArrowLeftRight,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/search/global-search";
+import { NotificationCenter } from "@/components/notifications/notification-center";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +51,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
   { label: "Automations", href: "/dashboard/automations", icon: Zap },
   { label: "Migrate", href: "/dashboard/migrate", icon: ArrowLeftRight },
+  { label: "Reports", href: "/dashboard/reports", icon: Building2 },
+  { label: "GDPR", href: "/dashboard/gdpr", icon: Shield },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
@@ -65,6 +71,8 @@ export function Sidebar() {
   >([]);
   const [activeSubAccount, setActiveSubAccount] = useState<string>("");
 
+  const [userId, setUserId] = useState<string>("");
+
   useEffect(() => {
     async function load() {
       const supabase = createClient();
@@ -72,6 +80,7 @@ export function Sidebar() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
       const { data: profile } = await supabase
         .from("users")
@@ -129,6 +138,13 @@ export function Sidebar() {
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Building2 className="h-6 w-6 text-primary" />
         <span className="text-lg font-bold">CloudHak CRM</span>
+      </div>
+
+      {/* Search + Notifications */}
+      <div className="flex items-center gap-2 border-b p-3">
+        <GlobalSearch subaccountId={activeSubAccount || undefined} />
+        <NotificationCenter userId={userId} />
+        <ThemeToggle />
       </div>
 
       {/* Sub-Account Switcher */}

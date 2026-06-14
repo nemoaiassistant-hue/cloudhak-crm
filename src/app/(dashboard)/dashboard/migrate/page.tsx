@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { GHLMigration } from "@/components/migration/ghl-migration";
+import { CSVImport } from "@/components/migration/csv-import";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function MigratePage() {
   const supabase = await createClient();
@@ -26,9 +28,20 @@ export default async function MigratePage() {
     <div className="p-6">
       <h1 className="mb-2 text-2xl font-bold">Data Migration</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Import your existing data from GoHighLevel into CloudHak CRM.
+        Import contacts from GoHighLevel, a CSV file, or other sources.
       </p>
-      <GHLMigration subaccountId={ids[0]} />
+      <Tabs defaultValue="ghl">
+        <TabsList className="mb-4">
+          <TabsTrigger value="ghl">From GoHighLevel</TabsTrigger>
+          <TabsTrigger value="csv">From CSV</TabsTrigger>
+        </TabsList>
+        <TabsContent value="ghl">
+          <GHLMigration subaccountId={ids[0]} />
+        </TabsContent>
+        <TabsContent value="csv">
+          <CSVImport subaccountId={ids[0]} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
