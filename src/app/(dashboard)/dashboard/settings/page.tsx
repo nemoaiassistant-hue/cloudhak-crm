@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { OrgSettings } from "@/components/settings/org-settings";
 import { TeamManagement } from "@/components/settings/team-management";
 import { ApiKeyManagement } from "@/components/settings/api-key-management";
+import { WhiteLabelSettings } from "@/components/settings/white-label";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -150,6 +151,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="organization">Organization</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="branding">White-Label</TabsTrigger>
         </TabsList>
 
         <TabsContent value="organization">
@@ -165,6 +167,16 @@ export default async function SettingsPage() {
         <TabsContent value="api-keys">
           {activeSubaccountId && (
             <ApiKeyManagement keys={apiKeys} subaccountId={activeSubaccountId} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="branding">
+          {activeSubaccountId && (
+            <WhiteLabelSettings
+              subaccountId={activeSubaccountId}
+              initialBranding={subAccounts[0].branding as Record<string, string>}
+              subaccountName={subAccounts[0].name}
+            />
           )}
         </TabsContent>
       </Tabs>

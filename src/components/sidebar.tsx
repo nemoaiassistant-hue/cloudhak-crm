@@ -16,6 +16,7 @@ import {
   Building2,
   FileText,
   Zap,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Forms", href: "/dashboard/forms", icon: FileText },
   { label: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
   { label: "Automations", href: "/dashboard/automations", icon: Zap },
+  { label: "Migrate", href: "/dashboard/migrate", icon: ArrowLeftRight },
 ];
 
 const SETTINGS_ITEMS: NavItem[] = [
