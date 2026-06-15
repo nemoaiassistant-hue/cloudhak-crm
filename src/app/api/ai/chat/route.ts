@@ -1,14 +1,19 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { readTools, readToolMap } from "@/lib/ai/tools/read-tools";
+import { writeTools, writeToolMap } from "@/lib/ai/tools/write-tools";
 import { toToolDefinition } from "@/lib/ai/tools/types";
-import type { ToolContext } from "@/lib/ai/tools/types";
+import type { ToolContext, CrmTool } from "@/lib/ai/tools/types";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 
-export const runtime = "nodejs"; // Need Supabase SSR client (not edge)
+export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const MAX_TOOL_ROUNDS = 5; // Prevent infinite loops
+const MAX_TOOL_ROUNDS = 6;
+
+// Combined tool registry
+const allTools: CrmTool[] = [...readTools, ...writeTools];
+const allToolMap: Record<string, CrmTool> = Object.fromEntries(allTools.map((t) => [t.name, t]));
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -50,15 +55,18 @@ export async function POST(req: NextRequest) {
     orgId: subAccount?.org_id,
   };
 
-  // Build tool definitions for the LLM
-  const toolDefs = readTools.map(toToolDefinition);
+  // Build tool definitions — filter out write tools for viewers
+  const canWrite = role !== "viewer";
+  const availableTools = canWrite ? allTools : readTools;
+  const toolDefs = availableTools.map(toToolDefinition);
 
   // Build system prompt
   const systemPrompt = buildSystemPrompt({
     role,
     subaccountName: subAccount?.name,
     pageContext: contextType,
-    toolNames: readTools.map((t) => t.name),
+    toolNames: availableTools.map((t) => t.name),
+    hasWriteAccess: canWrite,
   });
 
   // Set up SSE stream
@@ -70,30 +78,29 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Build conversation messages for the LLM
-        const apiMessages: Array<{ role: string; content: string }> = [
+        const apiMessages: Array<Record<string, unknown>> = [
           { role: "system", content: systemPrompt },
           ...messages.map((m) => ({ role: m.role, content: m.content })),
         ];
 
-        // Get LLM config
         const apiKey = process.env.OPENAI_API_KEY || process.env.ZAI_API_KEY;
         const apiUrl = process.env.OPENAI_API_URL || "https://api.openai.com/v1/chat/completions";
         const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
         if (!apiKey) {
-          sendEvent("text", "⚠️ **AI backend not configured.**\n\nAdd an `OPENAI_API_KEY` environment variable in Vercel to activate the co-pilot.\n\nOnce configured, I'll be able to search your contacts, analyze pipelines, find stale leads, and much more.");
+          sendEvent("text", "⚠️ **AI backend not configured.**\n\nAdd an `OPENAI_API_KEY` environment variable to activate the co-pilot.");
+          sendEvent("done", {});
           controller.close();
           return;
         }
 
         let round = 0;
         let finalText = "";
+        let pendingActionCard: { name: string; params: Record<string, unknown> } | null = null;
 
         while (round < MAX_TOOL_ROUNDS) {
           round++;
 
-          // Call LLM
           const llmResponse = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -120,49 +127,90 @@ export async function POST(req: NextRequest) {
           const llmData = await llmResponse.json();
           const choice = llmData.choices?.[0];
           const message = choice?.message;
-          const finishReason = choice?.finish_reason;
 
           // If the LLM wants to call tools
           if (message?.tool_calls && message.tool_calls.length > 0) {
-            // Add the assistant message with tool calls to conversation
+            // Add assistant message with tool calls to conversation
             apiMessages.push({
               role: "assistant",
               content: message.content || "",
-              // Store tool calls for the next round
-              ...({ tool_calls: message.tool_calls } as Record<string, unknown>),
-            } as { role: string; content: string });
+              tool_calls: message.tool_calls,
+            });
 
-            // Execute each tool call
+            // Process each tool call
+            let blockedByConfirmation = false;
+
             for (const tc of message.tool_calls) {
               const toolName = tc.function.name;
               const toolArgs = JSON.parse(tc.function.arguments || "{}");
+              const tool = allToolMap[toolName];
 
-              // Notify the client
+              if (!tool) {
+                sendEvent("tool_start", { name: toolName, args: toolArgs });
+                sendEvent("tool_end", { name: toolName, success: false });
+                apiMessages.push({ role: "tool", content: JSON.stringify({ success: false, error: `Unknown tool: ${toolName}` }), tool_call_id: tc.id });
+                continue;
+              }
+
+              // Check if this is a confirmation-required write tool
+              if (tool.requiresConfirmation) {
+                // Send action card to client — DON'T execute
+                sendEvent("action_card", { name: toolName, params: toolArgs, call_id: tc.id });
+
+                // Tell the LLM this needs user confirmation
+                apiMessages.push({
+                  role: "tool",
+                  content: JSON.stringify({
+                    success: false,
+                    error: "This action requires user confirmation. An action card has been shown to the user. They will confirm or cancel it separately.",
+                    pending_confirmation: true,
+                  }),
+                  tool_call_id: tc.id,
+                });
+
+                pendingActionCard = { name: toolName, params: toolArgs };
+                blockedByConfirmation = true;
+                continue;
+              }
+
+              // Execute non-confirmation tools immediately
               sendEvent("tool_start", { name: toolName, args: toolArgs });
 
-              const tool = readToolMap[toolName];
               let result;
-              if (!tool) {
-                result = { success: false, error: `Unknown tool: ${toolName}` };
-              } else {
-                try {
-                  result = await tool.execute(toolArgs, toolCtx);
-                } catch (err) {
-                  result = { success: false, error: String(err) };
-                }
+              try {
+                result = await tool.execute(toolArgs, toolCtx);
+              } catch (err) {
+                result = { success: false, error: String(err) };
               }
 
               sendEvent("tool_end", { name: toolName, success: result.success });
-
-              // Add tool result to conversation
-              apiMessages.push({
-                role: "tool",
-                content: JSON.stringify(result),
-                ...({ tool_call_id: tc.id } as Record<string, unknown>),
-              } as { role: string; content: string });
+              apiMessages.push({ role: "tool", content: JSON.stringify(result), tool_call_id: tc.id });
             }
 
-            // Loop back to let the LLM process tool results
+            // If we have a pending confirmation, stop the loop and let LLM explain
+            if (blockedByConfirmation) {
+              // Let the LLM generate a brief "I need your confirmation" message
+              const confirmResponse = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                  model,
+                  messages: apiMessages,
+                  max_tokens: 200,
+                  temperature: 0.5,
+                }),
+              });
+
+              if (confirmResponse.ok) {
+                const confirmData = await confirmResponse.json();
+                finalText = confirmData.choices?.[0]?.message?.content || "";
+              } else {
+                finalText = "I've prepared an action that needs your confirmation. Please review and confirm it below.";
+              }
+              break;
+            }
+
+            // Continue the tool loop
             continue;
           }
 
@@ -171,13 +219,11 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        // Stream the final text in chunks (simulated streaming for non-streaming API)
+        // Stream the final text
         if (finalText) {
-          // Try real streaming if the API supports it
           const words = finalText.split(/(\s+)/);
           for (const word of words) {
             sendEvent("text", word);
-            // Small delay for streaming effect
             if (word.trim()) await new Promise((r) => setTimeout(r, 8));
           }
         } else if (round >= MAX_TOOL_ROUNDS) {

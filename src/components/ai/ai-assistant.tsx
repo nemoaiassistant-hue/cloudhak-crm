@@ -4,18 +4,58 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, X, Bot, User, Wrench, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Send, Loader2, X, Bot, User, CheckCircle2, AlertCircle, ShieldCheck, Loader2 as Spinner } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   toolsUsed?: Array<{ name: string; success: boolean }>;
+  actionCard?: {
+    name: string;
+    params: Record<string, unknown>;
+    status: "pending" | "confirmed" | "executing" | "done" | "cancelled" | "error";
+    result?: string;
+  };
 }
 
 interface ToolStatus {
   name: string;
   status: "running" | "done" | "error";
+}
+
+// Human-readable action labels
+const ACTION_LABELS: Record<string, string> = {
+  create_task: "Create Task",
+  update_task_status: "Update Task Status",
+  update_contact_status: "Update Contact Status",
+  add_contact_tag: "Update Tags",
+  add_contact_note: "Add Note",
+  move_deal_stage: "Move Deal",
+  create_contact: "Create Contact",
+  send_email: "Send Email",
+  send_sms: "Send SMS",
+  bulk_update_tags: "Bulk Tag Contacts",
+};
+
+// Format action params for display
+function formatActionParams(name: string, params: Record<string, unknown>): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [];
+  for (const [key, val] of Object.entries(params)) {
+    const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    let value: string;
+    if (Array.isArray(val)) {
+      value = val.join(", ");
+    } else if (typeof val === "object" && val !== null) {
+      value = JSON.stringify(val);
+    } else {
+      value = String(val);
+    }
+    // Truncate long values
+    if (value.length > 120) value = value.slice(0, 117) + "...";
+    rows.push({ label, value });
+  }
+  return rows;
 }
 
 interface AIAssistantProps {
@@ -76,7 +116,6 @@ function renderMarkdown(text: string): React.ReactNode {
   }
 
   function renderInline(text: string): React.ReactNode {
-    // Bold **text**
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
     return parts.map((part, i) => {
       if (part.startsWith("**") && part.endsWith("**")) {
@@ -93,29 +132,18 @@ function renderMarkdown(text: string): React.ReactNode {
   }
 
   for (const line of lines) {
-    // Table detection
     if (line.includes("|") && line.trim().startsWith("|")) {
-      // Skip separator rows (|---|---|)
       if (/^\|[\s-|]+\|?$/.test(line.trim())) continue;
       inTable = true;
-      const cells = line.split("|").slice(1, -1).map((c) => c.trim());
-      // Handle trailing |
-      if (line.trim().endsWith("|")) {
-        tableRows.push(line.split("|").slice(1, -1).map((c) => c.trim()));
-      } else {
-        tableRows.push(cells);
-      }
+      tableRows.push(line.split("|").slice(1, line.trim().endsWith("|") ? -1 : undefined).map((c) => c.trim()));
       continue;
     } else if (inTable) {
       flushTable();
     }
 
-    // List items
     if (/^\s*[-*]\s/.test(line) || /^\s*\d+\.\s/.test(line)) {
       const isOrdered = /^\s*\d+\.\s/.test(line);
-      if (listType && listType !== (isOrdered ? "ol" : "ul")) {
-        flushList();
-      }
+      if (listType && listType !== (isOrdered ? "ol" : "ul")) flushList();
       listType = isOrdered ? "ol" : "ul";
       const content = line.replace(/^\s*[-*]\s|^\s*\d+\.\s/, "");
       listItems.push(<li key={`li-${listItems.length}`}>{renderInline(content)}</li>);
@@ -124,20 +152,87 @@ function renderMarkdown(text: string): React.ReactNode {
       flushList();
     }
 
-    // Empty line
     if (!line.trim()) {
       elements.push(<div key={`br-${elements.length}`} className="h-2" />);
       continue;
     }
 
-    // Regular paragraph
     elements.push(<p key={`p-${elements.length}`} className="my-0.5 leading-relaxed">{renderInline(line)}</p>);
   }
 
   flushList();
   flushTable();
-
   return elements;
+}
+
+// ─── Action Card Component ───
+function ActionCard({
+  card,
+  onConfirm,
+  onCancel,
+}: {
+  card: NonNullable<ChatMessage["actionCard"]>;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const params = formatActionParams(card.name, card.params);
+  const label = ACTION_LABELS[card.name] || card.name;
+
+  return (
+    <div className={cn(
+      "rounded-lg border-2 overflow-hidden mt-2",
+      card.status === "pending" && "border-amber-400/50 bg-amber-50/50 dark:bg-amber-950/20",
+      card.status === "confirmed" && "border-blue-400/50 bg-blue-50/50 dark:bg-blue-950/20",
+      card.status === "done" && "border-green-400/50 bg-green-50/50 dark:bg-green-950/20",
+      card.status === "error" && "border-red-400/50 bg-red-50/50 dark:bg-red-950/20",
+      card.status === "cancelled" && "border-gray-300 bg-muted/30",
+      card.status === "executing" && "border-blue-400/50 bg-blue-50/50 dark:bg-blue-950/20",
+    )}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-current/10">
+        <ShieldCheck className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-semibold flex-1">{label}</span>
+        {card.status === "pending" && <Badge variant="outline" className="text-amber-600 border-amber-400">Action Needed</Badge>}
+        {card.status === "executing" && <Badge variant="outline" className="text-blue-600 border-blue-400"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Running</Badge>}
+        {card.status === "done" && <Badge variant="outline" className="text-green-600 border-green-400"><CheckCircle2 className="h-3 w-3 mr-1" />Done</Badge>}
+        {card.status === "error" && <Badge variant="outline" className="text-red-600 border-red-400"><AlertCircle className="h-3 w-3 mr-1" />Failed</Badge>}
+        {card.status === "cancelled" && <Badge variant="outline" className="text-muted-foreground">Cancelled</Badge>}
+      </div>
+
+      {/* Params */}
+      <div className="px-3 py-2 space-y-1">
+        {params.map((p, i) => (
+          <div key={i} className="flex gap-2 text-xs">
+            <span className="text-muted-foreground font-medium min-w-[80px] shrink-0">{p.label}:</span>
+            <span className="break-words">{p.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Result message */}
+      {card.result && (
+        <div className="px-3 pb-2 text-xs">
+          <p className={cn(
+            "font-medium",
+            card.status === "done" && "text-green-600",
+            card.status === "error" && "text-red-600",
+          )}>{card.result}</p>
+        </div>
+      )}
+
+      {/* Buttons */}
+      {(card.status === "pending") && (
+        <div className="flex gap-2 px-3 py-2 border-t border-current/10">
+          <Button size="sm" className="h-7 text-xs flex-1" onClick={onConfirm}>
+            <CheckCircle2 className="h-3 w-3 mr-1" /> Confirm
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={onCancel}>
+            <X className="h-3 w-3 mr-1" /> Cancel
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -153,6 +248,16 @@ const TOOL_LABELS: Record<string, string> = {
   get_conversations: "Checking inbox",
   get_client_overview: "Loading agency overview",
   get_stale_contacts: "Finding stale contacts",
+  create_task: "Creating task",
+  update_task_status: "Updating task",
+  update_contact_status: "Updating status",
+  add_contact_tag: "Updating tags",
+  add_contact_note: "Adding note",
+  move_deal_stage: "Preparing deal move",
+  create_contact: "Preparing contact",
+  send_email: "Preparing email",
+  send_sms: "Preparing SMS",
+  bulk_update_tags: "Preparing bulk tag",
 };
 
 export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistantProps) {
@@ -168,6 +273,61 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, loading, toolStatuses]);
+
+  // Execute a confirmed action via the tools API
+  const executeAction = useCallback(async (msgIndex: number, toolName: string, params: Record<string, unknown>) => {
+    // Update status to executing
+    setMessages((prev) => {
+      const updated = [...prev];
+      if (updated[msgIndex]?.actionCard) {
+        updated[msgIndex]!.actionCard!.status = "executing";
+      }
+      return updated;
+    });
+
+    try {
+      const res = await fetch("/api/ai/tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toolName, params, subaccountId }),
+      });
+      const data = await res.json();
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated[msgIndex]?.actionCard) {
+          if (data.success) {
+            updated[msgIndex]!.actionCard!.status = "done";
+            updated[msgIndex]!.actionCard!.result = "✅ Action completed successfully.";
+          } else {
+            updated[msgIndex]!.actionCard!.status = "error";
+            updated[msgIndex]!.actionCard!.result = `❌ ${data.error || "Action failed."}`;
+          }
+        }
+        return updated;
+      });
+    } catch {
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated[msgIndex]?.actionCard) {
+          updated[msgIndex]!.actionCard!.status = "error";
+          updated[msgIndex]!.actionCard!.result = "❌ Connection error.";
+        }
+        return updated;
+      });
+    }
+  }, [subaccountId]);
+
+  const cancelAction = useCallback((msgIndex: number) => {
+    setMessages((prev) => {
+      const updated = [...prev];
+      if (updated[msgIndex]?.actionCard) {
+        updated[msgIndex]!.actionCard!.status = "cancelled";
+        updated[msgIndex]!.actionCard!.result = "Cancelled by user.";
+      }
+      return updated;
+    });
+  }, []);
 
   const send = useCallback(async function send() {
     if (!input.trim() || loading) return;
@@ -196,13 +356,13 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
         return;
       }
 
-      // Read SSE stream
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let assistantText = "";
       const toolsTracker: Array<{ name: string; success: boolean }> = [];
       let started = false;
+      let pendingActionCard: ChatMessage["actionCard"] = undefined;
 
       if (!reader) {
         setMessages([...newMessages, { role: "assistant", content: "⚠️ Stream error." }]);
@@ -242,6 +402,12 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                   )
                 );
                 toolsTracker.push({ name: data.name, success: data.success });
+              } else if (currentEvent === "action_card") {
+                pendingActionCard = {
+                  name: data.name as string,
+                  params: data.params as Record<string, unknown>,
+                  status: "pending" as const,
+                };
               } else if (currentEvent === "text") {
                 assistantText += data;
                 setMessages((prev) => {
@@ -250,6 +416,7 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                     role: "assistant",
                     content: assistantText,
                     toolsUsed: toolsTracker.length > 0 ? toolsTracker : undefined,
+                    actionCard: pendingActionCard || undefined,
                   };
                   return updated;
                 });
@@ -264,15 +431,14 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                 });
               }
             } catch {
-              // Ignore parse errors for partial data
+              // Ignore parse errors
             }
             currentEvent = "";
           }
         }
       }
 
-      // Final cleanup
-      if (!assistantText && !started) {
+      if (!assistantText && !started && !pendingActionCard) {
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = { role: "assistant", content: "I couldn't process that. Please try again." };
@@ -291,14 +457,14 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
     contextType === "contact"
       ? [
           "Summarize this contact's engagement",
-          "Draft a follow-up email",
-          "What are the next best actions?",
+          "Create a follow-up task for them",
+          "Add a note about the last call",
         ]
       : [
-          "How many leads do we have this week?",
+          "How many leads do we have?",
+          "Create a task to call hot leads",
           "Show me stale contacts (30+ days)",
           "What's the pipeline value?",
-          "Any overdue tasks?",
         ];
 
   return (
@@ -327,7 +493,7 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                 <p className="text-sm font-semibold">AI Co-Pilot</p>
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                  <span className="text-[10px] text-muted-foreground">Connected to your data</span>
+                  <span className="text-[10px] text-muted-foreground">Can read & take actions</span>
                 </div>
               </div>
             </div>
@@ -345,7 +511,7 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                 </div>
                 <p className="text-sm font-medium mb-1">AI Co-Pilot</p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  I can search your contacts, analyze pipelines, find stale leads, and more.
+                  I can search contacts, manage tasks, move deals, and take actions for you.
                 </p>
                 <div className="flex flex-col gap-2">
                   {suggestions.map((s) => (
@@ -384,14 +550,24 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
                       ))}
                     </div>
                   )}
-                  <div className="whitespace-pre-wrap break-words">
-                    {msg.role === "assistant" ? renderMarkdown(msg.content) : msg.content}
-                  </div>
+                  {msg.content && (
+                    <div className="whitespace-pre-wrap break-words">
+                      {msg.role === "assistant" ? renderMarkdown(msg.content) : msg.content}
+                    </div>
+                  )}
+                  {/* Action Card */}
+                  {msg.actionCard && (
+                    <ActionCard
+                      card={msg.actionCard}
+                      onConfirm={() => msg.actionCard && executeAction(i, msg.actionCard.name, msg.actionCard.params)}
+                      onCancel={() => cancelAction(i)}
+                    />
+                  )}
                 </div>
               </div>
             ))}
 
-            {/* Loading state with tool statuses */}
+            {/* Loading state */}
             {loading && (
               <div className="flex gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
@@ -432,7 +608,7 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
           {/* Input */}
           <div className="border-t p-3 flex gap-2">
             <Input
-              placeholder="Ask me anything about your CRM..."
+              placeholder="Ask me to search, create, or manage..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {

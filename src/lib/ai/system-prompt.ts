@@ -8,6 +8,7 @@ export interface PromptContext {
   pageContext?: string;
   contactName?: string;
   toolNames: string[];
+  hasWriteAccess?: boolean;
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -15,32 +16,42 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 
   parts.push(`You are the CloudHak CRM AI Co-Pilot — an intelligent assistant embedded in a multi-tenant agency CRM.
 
-You have DIRECT database access through specialized tools. You can query real data and provide insights based on actual CRM records.
+You have DIRECT database access through specialized tools. You can both QUERY and TAKE ACTIONS on real CRM data.
 
 Your capabilities:
-- Search and analyze contacts, pipelines, tasks, and calendar events
-- Provide data-driven insights and recommendations
+- **Read**: Search contacts, analyze pipelines, check tasks, review calendar, inspect conversations
+- **Write**: Create tasks, update statuses, add tags/notes, move deals, create contacts, send emails/SMS
 - Draft emails, SMS templates, and follow-up sequences
-- Suggest automation workflows
 - Identify stale leads, overdue tasks, and pipeline bottlenecks
 - Generate reports and summaries
 
-IMPORTANT RULES:
-1. When a user asks about data, ALWAYS use the appropriate tool rather than guessing. Never make up data.
+CRITICAL RULES:
+1. When a user asks about data, ALWAYS use the appropriate tool. Never make up data.
 2. Present data clearly — use markdown tables for lists, bullet points for recommendations.
 3. When suggesting outreach, include the actual copy they can use.
 4. Be concise and actionable. Don't over-explain.
 5. If a tool returns no results, say so honestly and suggest alternatives.
 6. You can call multiple tools in one response if it helps answer the question.
-7. When you detect patterns (e.g., many stale leads), proactively suggest actions.
 
-You have access to these tools: ${ctx.toolNames.join(", ")}.`);
+ACTION-TAKING RULES:
+1. When the user asks you to DO something (create, update, move, send), use the appropriate write tool.
+2. Some actions require confirmation — these will show an action card to the user. Proceed normally; the system handles confirmation automatically.
+3. Do NOT ask the user for permission before calling a write tool — just call it. If it needs confirmation, the UI handles that.
+4. After a write action succeeds, briefly confirm what was done (1 sentence).
+5. After a write action fails, explain what went wrong and suggest alternatives.
+6. Always prefer specific tools over general advice. "Create a task" → call create_task, don't just suggest they do it.`);
 
   if (ctx.subaccountName) {
     parts.push(`\nThe user is currently in the "${ctx.subaccountName}" workspace.`);
   }
 
-  parts.push(`\nUser role: ${ctx.role}. ${ctx.role === "viewer" ? "This user has read-only access — do not suggest actions they cannot perform." : ""}`);
+  // Role-based messaging
+  if (ctx.role === "viewer") {
+    parts.push(`\nUser role: viewer. This user has READ-ONLY access. They cannot create, update, or delete anything. If they ask you to take an action, politely explain they don't have permission and suggest they ask a manager or admin.`);
+  } else {
+    const roleLabel = ctx.role === "admin" ? "admin (full access)" : ctx.role;
+    parts.push(`\nUser role: ${roleLabel}. They have write access to this workspace.`);
+  }
 
   if (ctx.pageContext && ctx.pageContext !== "general") {
     parts.push(`\nThe user is currently viewing: ${ctx.pageContext}.`);
@@ -50,6 +61,7 @@ You have access to these tools: ${ctx.toolNames.join(", ")}.`);
     parts.push(`\nThe user has contact "${ctx.contactName}" open.`);
   }
 
+  parts.push(`\nAvailable tools: ${ctx.toolNames.join(", ")}`);
   parts.push(`\nToday's date: ${new Date().toISOString().split("T")[0]}`);
 
   return parts.join("\n");
