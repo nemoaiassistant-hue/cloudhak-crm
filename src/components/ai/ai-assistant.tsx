@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, X, Bot, User, CheckCircle2, AlertCircle, ShieldCheck, Loader2 as Spinner } from "lucide-react";
+import { Sparkles, Send, Loader2, X, Bot, User, CheckCircle2, AlertCircle, ShieldCheck, Loader2 as Spinner, TrendingUp, Clock, Target, Mail, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -258,6 +258,14 @@ const TOOL_LABELS: Record<string, string> = {
   send_email: "Preparing email",
   send_sms: "Preparing SMS",
   bulk_update_tags: "Preparing bulk tag",
+  draft_followup_sequence: "Drafting sequence",
+  draft_email: "Drafting email",
+  draft_template: "Creating template",
+  analyze_lead_sources: "Analyzing sources",
+  detect_cold_leads: "Detecting cold leads",
+  get_deals_at_risk: "Finding at-risk deals",
+  generate_agency_report: "Generating report",
+  compare_clients: "Comparing clients",
 };
 
 export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistantProps) {
@@ -266,6 +274,15 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [toolStatuses, setToolStatuses] = useState<ToolStatus[]>([]);
+  const [proactiveSuggestions, setProactiveSuggestions] = useState<Array<{
+    id: string;
+    type: string;
+    severity: string;
+    title: string;
+    description: string;
+    prompt: string;
+  }>>([]);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -273,6 +290,21 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, loading, toolStatuses]);
+
+  // Fetch proactive suggestions on mount / subaccount change
+  useEffect(() => {
+    if (!subaccountId) return;
+    let cancelled = false;
+    fetch(`/api/ai/suggestions?subaccountId=${encodeURIComponent(subaccountId)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!cancelled && data?.suggestions) {
+          setProactiveSuggestions(data.suggestions);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [subaccountId]);
 
   // Execute a confirmed action via the tools API
   const executeAction = useCallback(async (msgIndex: number, toolName: string, params: Record<string, unknown>) => {
@@ -453,31 +485,24 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
     }
   }, [input, loading, messages, contextType, contextId, subaccountId]);
 
-  const suggestions =
-    contextType === "contact"
-      ? [
-          "Summarize this contact's engagement",
-          "Create a follow-up task for them",
-          "Add a note about the last call",
-        ]
-      : [
-          "How many leads do we have?",
-          "Create a task to call hot leads",
-          "Show me stale contacts (30+ days)",
-          "What's the pipeline value?",
-        ];
-
   return (
     <>
       {/* Floating button */}
       {!open && (
-        <Button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 animate-in fade-in duration-300"
-          size="icon"
-        >
-          <Sparkles className="h-6 w-6" />
-        </Button>
+        <div className="fixed bottom-6 right-6 z-50">
+          {proactiveSuggestions.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold px-1 ring-2 ring-background z-10">
+              {proactiveSuggestions.length}
+            </span>
+          )}
+          <Button
+            onClick={() => setOpen(true)}
+            className="h-14 w-14 rounded-full shadow-lg p-0 animate-in fade-in duration-300"
+            size="icon"
+          >
+            <Sparkles className="h-6 w-6" />
+          </Button>
+        </div>
       )}
 
       {/* Chat panel */}
@@ -505,16 +530,91 @@ export function AIAssistant({ contextType, contextId, subaccountId }: AIAssistan
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
             {messages.length === 0 && (
-              <div className="text-center py-6">
+              <div className="text-center py-4">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <p className="text-sm font-medium mb-1">AI Co-Pilot</p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  I can search contacts, manage tasks, move deals, and take actions for you.
+                  I can search contacts, manage tasks, analyze data, draft content, and take actions for you.
                 </p>
-                <div className="flex flex-col gap-2">
-                  {suggestions.map((s) => (
+
+                {/* Proactive suggestions */}
+                {proactiveSuggestions.length > 0 && !suggestionsDismissed && (
+                  <div className="mb-4 text-left">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" /> Insights ({proactiveSuggestions.length})
+                      </span>
+                      <button onClick={() => setSuggestionsDismissed(true)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {proactiveSuggestions.map((s) => {
+                        const icons: Record<string, React.ReactNode> = {
+                          stale_leads: <Clock className="h-3 w-3" />,
+                          overdue_tasks: <AlertCircle className="h-3 w-3" />,
+                          stuck_deals: <Target className="h-3 w-3" />,
+                          unanswered_forms: <Mail className="h-3 w-3" />,
+                          wins: <Trophy className="h-3 w-3" />,
+                        };
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => { setInput(s.prompt); }}
+                            className={cn(
+                              "w-full text-left text-xs rounded-lg border px-3 py-2 hover:bg-muted/50 transition-colors flex items-start gap-2",
+                              s.severity === "urgent" && "border-red-300/50 bg-red-50/30 dark:bg-red-950/10",
+                              s.severity === "warning" && "border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10",
+                              s.severity === "info" && "border-blue-300/50 bg-blue-50/30 dark:bg-blue-950/10",
+                            )}
+                          >
+                            <span className={cn(
+                              "mt-0.5 shrink-0",
+                              s.severity === "urgent" && "text-red-500",
+                              s.severity === "warning" && "text-amber-500",
+                              s.severity === "info" && "text-blue-500",
+                            )}>{icons[s.type] || <TrendingUp className="h-3 w-3" />}</span>
+                            <div className="flex-1">
+                              <p className="font-medium">{s.title}</p>
+                              <p className="text-muted-foreground text-[11px] mt-0.5">{s.description}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Context-aware quick actions */}
+                <div className="flex flex-col gap-2 text-left">
+                  <span className="text-xs font-semibold text-muted-foreground">Quick Actions</span>
+                  {(contextType === "contact"
+                    ? [
+                        "Summarize this contact's engagement",
+                        "Create a follow-up task for them",
+                        "Add a note about the last call",
+                      ]
+                    : contextType === "pipelines"
+                    ? [
+                        "What's the pipeline summary?",
+                        "Which deals are at risk?",
+                        "Compare deal values by stage",
+                      ]
+                    : contextType === "agency"
+                    ? [
+                        "Compare client performance",
+                        "Generate an agency report",
+                        "Which client has the best conversion rate?",
+                      ]
+                    : [
+                        "How many leads do we have?",
+                        "Show me stale contacts (7+ days)",
+                        "What's the pipeline value?",
+                        "Generate a weekly report",
+                      ]
+                  ).map((s) => (
                     <button
                       key={s}
                       onClick={() => setInput(s)}

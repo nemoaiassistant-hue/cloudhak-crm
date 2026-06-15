@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { readTools, readToolMap } from "@/lib/ai/tools/read-tools";
 import { writeTools, writeToolMap } from "@/lib/ai/tools/write-tools";
+import { advancedTools, advancedToolMap } from "@/lib/ai/tools/advanced-tools";
 import { toToolDefinition } from "@/lib/ai/tools/types";
 import type { ToolContext, CrmTool } from "@/lib/ai/tools/types";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
@@ -11,8 +12,8 @@ export const maxDuration = 30;
 
 const MAX_TOOL_ROUNDS = 6;
 
-// Combined tool registry
-const allTools: CrmTool[] = [...readTools, ...writeTools];
+// Combined tool registry — all 30 tools (12 read + 10 write + 8 advanced)
+const allTools: CrmTool[] = [...readTools, ...writeTools, ...advancedTools];
 const allToolMap: Record<string, CrmTool> = Object.fromEntries(allTools.map((t) => [t.name, t]));
 
 export async function POST(req: NextRequest) {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // Build tool definitions — filter out write tools for viewers
   const canWrite = role !== "viewer";
-  const availableTools = canWrite ? allTools : readTools;
+  const availableTools = canWrite ? allTools : [...readTools, ...advancedTools.filter((t) => !t.requiresConfirmation)];
   const toolDefs = availableTools.map(toToolDefinition);
 
   // Build system prompt
