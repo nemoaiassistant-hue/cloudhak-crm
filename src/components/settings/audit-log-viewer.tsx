@@ -116,14 +116,14 @@ export function AuditLogViewer({ subaccountId }: { subaccountId: string }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-max text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-medium">Action</th>
-                    <th className="text-left p-3 font-medium">Entity</th>
-                    <th className="text-left p-3 font-medium">User</th>
-                    <th className="text-left p-3 font-medium">IP</th>
-                    <th className="text-left p-3 font-medium">Time</th>
+                    <th className="text-left p-3 font-medium whitespace-nowrap">Action</th>
+                    <th className="text-left p-3 font-medium whitespace-nowrap">Entity</th>
+                    <th className="text-left p-3 font-medium whitespace-nowrap">User</th>
+                    <th className="text-left p-3 font-medium whitespace-nowrap">IP</th>
+                    <th className="text-left p-3 font-medium whitespace-nowrap">Time</th>
                   </tr>
                 </thead>
                 <tbody>

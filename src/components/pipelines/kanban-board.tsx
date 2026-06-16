@@ -234,13 +234,13 @@ export function KanbanBoard({ pipelineId, subaccountId }: KanbanBoardProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Board header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Badge variant="secondary" className="text-sm">
             {opportunities.length} deals • {fmtGBP(totalValue)}
           </Badge>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setShowStageManage(true)}>
             <Settings2 className="mr-1 h-4 w-4" /> Stages
           </Button>
@@ -299,7 +299,7 @@ export function KanbanBoard({ pipelineId, subaccountId }: KanbanBoardProps) {
                                 ref={prov.innerRef}
                                 {...prov.draggableProps}
                                 {...prov.dragHandleProps}
-                                className={`rounded-md border bg-card p-3 text-sm shadow-sm transition-shadow ${
+                                className={`rounded-md border bg-card p-3 text-sm shadow-sm transition-shadow touch-none select-none ${
                                   snap.isDragging ? "shadow-lg opacity-90" : "hover:shadow-sm"
                                 }`}
                               >

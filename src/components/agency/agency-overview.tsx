@@ -206,24 +206,24 @@ export function AgencyOverview({ orgId }: { orgId: string }) {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-max text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium">Client</th>
-                  <th className="text-right p-3 font-medium">Contacts</th>
-                  <th className="text-right p-3 font-medium">Deals</th>
-                  <th className="text-right p-3 font-medium">Pipeline</th>
-                  <th className="text-right p-3 font-medium">Forms</th>
-                  <th className="text-right p-3 font-medium">Submissions</th>
-                  <th className="text-right p-3 font-medium">Automations</th>
-                  <th className="text-right p-3 font-medium">Team</th>
-                  <th className="text-center p-3 font-medium">Status</th>
+                  <th className="text-left p-3 font-medium whitespace-nowrap">Client</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Contacts</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Deals</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Pipeline</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Forms</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Submissions</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Automations</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Team</th>
+                  <th className="text-center p-3 font-medium whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {stats.clients.map((client) => (
                   <tr key={client.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div
                           className="h-8 w-8 rounded-md flex items-center justify-center text-xs font-bold text-white"

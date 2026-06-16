@@ -245,17 +245,17 @@ export function AgencyReports({ orgId }: { orgId: string }) {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-max text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium">Client</th>
-                  <th className="text-right p-3 font-medium">Contacts</th>
-                  <th className="text-right p-3 font-medium">New (7d)</th>
-                  <th className="text-right p-3 font-medium">Deals</th>
-                  <th className="text-right p-3 font-medium">Pipeline</th>
-                  <th className="text-right p-3 font-medium">Forms</th>
-                  <th className="text-right p-3 font-medium">Submissions</th>
-                  <th className="text-right p-3 font-medium">Automations</th>
+                  <th className="text-left p-3 font-medium whitespace-nowrap">Client</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Contacts</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">New (7d)</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Deals</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Pipeline</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Forms</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Submissions</th>
+                  <th className="text-right p-3 font-medium whitespace-nowrap">Automations</th>
                 </tr>
               </thead>
               <tbody>

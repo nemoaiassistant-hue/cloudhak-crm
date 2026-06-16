@@ -272,12 +272,12 @@ export function ReportsView({ subaccountId }: { subaccountId: string }) {
             <p className="text-sm text-muted-foreground py-4 text-center">No deals yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-max text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 font-medium">Stage</th>
-                    <th className="text-right py-2 font-medium">Deals</th>
-                    <th className="text-right py-2 font-medium">Value</th>
+                    <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Stage</th>
+                    <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Deals</th>
+                    <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Value</th>
                   </tr>
                 </thead>
                 <tbody>
